@@ -32,6 +32,8 @@ public class ImpressionistView extends View {
 
     private int _alpha = 150;
     private int _defaultRadius = 25;
+    private float _defaultSpeed = .5f;
+    int _currentRadius = _defaultRadius;
     private Point _lastPoint = null;
     private long _lastPointTime = -1;
     private boolean _useMotionSpeedForBrushStrokeSize = true;
@@ -123,7 +125,7 @@ public class ImpressionistView extends View {
             if (_offScreenBitmap == null) _offScreenBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
             if (_offScreenCanvas == null) _offScreenCanvas = new Canvas(_offScreenBitmap);
             _offScreenCanvas.drawBitmap(_offScreenBitmap, 0, 0, _paint);
-            _offScreenCanvas.drawCircle(_lastPoint.x, _lastPoint.y, _defaultRadius, _paint);
+            _offScreenCanvas.drawCircle(_lastPoint.x, _lastPoint.y, _currentRadius, _paint);
         }
 
         if(_offScreenBitmap != null) {
@@ -140,16 +142,25 @@ public class ImpressionistView extends View {
         float touchY = motionEvent.getY();
 
         if (motionEvent.getAction() == MotionEvent.ACTION_DOWN || motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
-            _lastPoint = new Point((int)touchX, (int)touchY);
-            invalidate();
-
             Rect viewRect = getBitmapPositionInsideImageView(_imageView);
             Bitmap image = ((BitmapDrawable)_imageView.getDrawable()).getBitmap();
-            int xCoord = (int)Math.max(0, touchX * image.getWidth() / viewRect.width());
+            int xCoord = (int)Math.max(0, (touchX - viewRect.left) * image.getWidth() / viewRect.width());
             xCoord = (int)Math.min(xCoord, image.getWidth() - 1);
-            int yCoord = (int)Math.max(0, touchY * image.getHeight() / viewRect.height());
+            int yCoord = (int)Math.max(0, (touchY - viewRect.top) * image.getHeight() / viewRect.height());
             yCoord = (int)Math.min(yCoord, image.getHeight() - 1);
             _paint.setColor(image.getPixel(xCoord, yCoord));
+
+            if (_lastPointTime == -1) {
+                _currentRadius = _defaultRadius;
+            } else {
+                float dx = (float)Math.sqrt(Math.pow(_lastPoint.x - touchX, 2) + Math.pow(_lastPoint.y - touchY, 2));
+                float dt = System.currentTimeMillis() - _lastPointTime;
+                _currentRadius = (int)Math.max(Math.sqrt((dx/dt)/_defaultSpeed)*_defaultRadius, _minBrushRadius);
+            }
+
+            _lastPointTime = System.currentTimeMillis();
+            _lastPoint = new Point((int)touchX, (int)touchY);
+            invalidate();
         }
 
 
