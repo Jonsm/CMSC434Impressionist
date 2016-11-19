@@ -8,6 +8,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -118,6 +119,13 @@ public class ImpressionistView extends View {
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        if (_lastPoint != null) {
+            if (_offScreenBitmap == null) _offScreenBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
+            if (_offScreenCanvas == null) _offScreenCanvas = new Canvas(_offScreenBitmap);
+            _offScreenCanvas.drawBitmap(_offScreenBitmap, 0, 0, _paint);
+            _offScreenCanvas.drawCircle(_lastPoint.x, _lastPoint.y, _defaultRadius, _paint);
+        }
+
         if(_offScreenBitmap != null) {
             canvas.drawBitmap(_offScreenBitmap, 0, 0, _paint);
         }
@@ -128,11 +136,21 @@ public class ImpressionistView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent){
+        float touchX = motionEvent.getX();
+        float touchY = motionEvent.getY();
 
-        //TODO
-        //Basically, the way this works is to liste for Touch Down and Touch Move events and determine where those
-        //touch locations correspond to the bitmap in the ImageView. You can then grab info about the bitmap--like the pixel color--
-        //at that location
+        if (motionEvent.getAction() == MotionEvent.ACTION_DOWN || motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
+            _lastPoint = new Point((int)touchX, (int)touchY);
+            invalidate();
+
+            Rect viewRect = getBitmapPositionInsideImageView(_imageView);
+            Bitmap image = ((BitmapDrawable)_imageView.getDrawable()).getBitmap();
+            int xCoord = (int)Math.max(0, touchX * image.getWidth() / viewRect.width());
+            xCoord = (int)Math.min(xCoord, image.getWidth() - 1);
+            int yCoord = (int)Math.max(0, touchY * image.getHeight() / viewRect.height());
+            yCoord = (int)Math.min(yCoord, image.getHeight() - 1);
+            _paint.setColor(image.getPixel(xCoord, yCoord));
+        }
 
 
         return true;
