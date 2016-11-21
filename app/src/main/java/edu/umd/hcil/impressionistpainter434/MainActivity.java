@@ -67,6 +67,9 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
 
     }
 
+    /*
+     * clears painting
+     */
     public void onButtonClickClear(View v) {
         new AlertDialog.Builder(this)
                 .setTitle("Clear Painting?")
@@ -80,6 +83,9 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
                 .setNegativeButton(android.R.string.no, null).show();
     }
 
+    /*
+     * Sets the brush type
+     */
     public void onButtonClickSetBrush(View v) {
         PopupMenu popupMenu = new PopupMenu(this, v);
         popupMenu.setOnMenuItemClickListener(this);
@@ -87,6 +93,9 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
         popupMenu.show();
     }
 
+    /*
+     * saves the painting
+     */
     public void onButtonClickSave(View v) {
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle("Save");
@@ -115,6 +124,20 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
         });
         AlertDialog dialog = alert.create();
         dialog.show();
+    }
+
+    /*
+     * undoes last change
+     */
+    public void onButtonClickUndo(View view) {
+        _impressionistView.undo();
+    }
+
+    /*
+     * redoes last undo
+     */
+    public void onButtonClickRedo(View view) {
+        _impressionistView.redo();
     }
 
     public boolean onMenuItemClick(MenuItem item) {

@@ -81,6 +81,20 @@
                 android:id="@+id/buttonSave"
                 android:onClick="onButtonClickSave"/>
 
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Undo"
+                android:id="@+id/buttonUndo"
+                android:onClick="onButtonClickUndo"/>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Redo"
+                android:id="@+id/buttonRedo"
+                android:onClick="onButtonClickRedo"/>
+
         </LinearLayout>
 
     </LinearLayout>

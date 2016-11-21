@@ -2,6 +2,7 @@ package edu.umd.hcil.impressionistpainter434;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.widget.ImageView;
 
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Random;
 
 /**
@@ -43,6 +45,10 @@ public class ImpressionistView extends View {
     private float _minBrushRadius = 5;
     private int _splatterCount = 7;
     private float _splatterRadiusFactor = 4.5f;
+
+    private ArrayList<Bitmap> _historyList = new ArrayList<Bitmap> ();
+    private int _historyPosition = 0;
+    private boolean _lastChangeAdded = true;
 
     public ImpressionistView(Context context) {
         super(context);
@@ -117,6 +123,13 @@ public class ImpressionistView extends View {
      * Clears the painting
      */
     public void clearPainting(){
+        _historyList.clear();
+        _historyPosition = 0;
+        _lastChangeAdded = true;
+        clearHelper();
+    }
+
+    private void clearHelper() {
         _offScreenCanvas = null;
         _offScreenBitmap = null;
         _lastPoint = null;
@@ -125,11 +138,51 @@ public class ImpressionistView extends View {
     }
 
     /*
-    * saves the painting
+     * saves the painting
      */
     public void savePainting(String title, String description, Context context) {
         if (_offScreenBitmap != null) {
             MediaStore.Images.Media.insertImage(context.getContentResolver(), _offScreenBitmap, title, description);
+        }
+    }
+
+    /*
+     * undoes last change
+     */
+    public void undo() {
+        if (_lastChangeAdded == false) {
+            addToHistoryList();
+            _lastChangeAdded = true;
+        }
+
+        if (_historyPosition > 0) {
+            clearHelper();
+            _historyPosition--;
+            if (_historyPosition > 0) {
+                _offScreenBitmap = copyBitmap(_historyList.get(_historyPosition - 1));
+                _offScreenCanvas = new Canvas(_offScreenBitmap);
+            }
+            invalidate();
+        }
+        System.out.println(_historyList.size());
+        System.out.println(_historyPosition);
+    }
+
+    /*
+     * redoes last undo
+     */
+    public void redo() {
+        if (_lastChangeAdded == false) {
+            addToHistoryList();
+            _lastChangeAdded = true;
+        }
+
+        if (_historyPosition < _historyList.size()) {
+            clearHelper();
+            _historyPosition++;
+            _offScreenBitmap = copyBitmap(_historyList.get(_historyPosition - 1));
+            _offScreenCanvas = new Canvas(_offScreenBitmap);
+            invalidate();
         }
     }
 
@@ -184,6 +237,11 @@ public class ImpressionistView extends View {
 
         if (motionEvent.getAction() == MotionEvent.ACTION_DOWN || motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
             if (_imageView != null && _imageView.getDrawable() != null) {
+                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN && _offScreenBitmap != null && !_lastChangeAdded) {
+                    addToHistoryList();
+                }
+                _lastChangeAdded = false;
+
                 Rect viewRect = getBitmapPositionInsideImageView(_imageView);
                 Bitmap image = ((BitmapDrawable) _imageView.getDrawable()).getBitmap();
                 int xCoord = (int) Math.max(0, (touchX - viewRect.left) * image.getWidth() / viewRect.width());
@@ -211,8 +269,25 @@ public class ImpressionistView extends View {
         return true;
     }
 
+    //for undo and redo
+    private void addToHistoryList () {
+        Bitmap copy = copyBitmap(_offScreenBitmap);
+        System.out.println("adding");
+        while (_historyPosition < _historyList.size()) {
+            System.out.println("removing");
+            _historyList.remove(_historyList.size() - 1);
+        }
+        _historyList.add(copy);
+        _historyPosition++;
+    }
 
-
+    //deep copies a bitmap
+    private Bitmap copyBitmap (Bitmap bitmap) {
+        Bitmap copy = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas2 = new Canvas(copy);
+        canvas2.drawBitmap(bitmap, 0, 0, _canvasPaint);
+        return copy;
+    }
 
     /**
      * This method is useful to determine the bitmap position within the Image View. It's not needed for anything else
