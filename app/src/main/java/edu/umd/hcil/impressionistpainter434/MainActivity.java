@@ -1,6 +1,7 @@
 package edu.umd.hcil.impressionistpainter434;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -93,8 +94,8 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
         View alertLayout = getLayoutInflater().inflate(R.layout.save_layout, null);
         alert.setView(alertLayout);
 
-        final EditText title = (EditText)findViewById(R.id.titleText);
-        final EditText description = (EditText)findViewById(R.id.descriptionText);
+        final EditText title = (EditText)alertLayout.findViewById(R.id.titleText);
+        final EditText description = (EditText)alertLayout.findViewById(R.id.descriptionText);
 
         alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
@@ -106,11 +107,10 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                System.out.println(title.getText());
-//                String titleText = title.getText().toString();
-//                String descriptionText = description.getText().toString();
-
-                _impressionistView.savePainting();
+                String titleText = title.getText().toString();
+                String descriptionText = description.getText().toString();
+                Context context = getApplicationContext();
+                _impressionistView.savePainting(titleText, descriptionText, context);
             }
         });
         AlertDialog dialog = alert.create();

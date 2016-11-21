@@ -10,6 +10,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.provider.MediaStore;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -126,8 +127,10 @@ public class ImpressionistView extends View {
     /*
     * saves the painting
      */
-    public void savePainting() {
-
+    public void savePainting(String title, String description, Context context) {
+        if (_offScreenBitmap != null) {
+            MediaStore.Images.Media.insertImage(context.getContentResolver(), _offScreenBitmap, title, description);
+        }
     }
 
     @Override
