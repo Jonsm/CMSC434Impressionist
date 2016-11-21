@@ -6,7 +6,5 @@ package edu.umd.hcil.impressionistpainter434;
 public enum BrushType {
     Circle,
     Square,
-    Line,
-    CircleSplatter,
-    LineSplatter
+    CircleSplatter
 }

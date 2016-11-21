@@ -36,10 +36,12 @@ public class ImpressionistView extends View {
     int _currentRadius = _defaultRadius;
     private Point _lastPoint = null;
     private long _lastPointTime = -1;
-    private boolean _useMotionSpeedForBrushStrokeSize = true;
     private Paint _paintBorder = new Paint();
+    private Paint _canvasPaint = new Paint();
     private BrushType _brushType = BrushType.Square;
     private float _minBrushRadius = 5;
+    private int _splatterCount = 7;
+    private float _splatterRadiusFactor = 4.5f;
 
     public ImpressionistView(Context context) {
         super(context);
@@ -114,7 +116,18 @@ public class ImpressionistView extends View {
      * Clears the painting
      */
     public void clearPainting(){
-        //TODO
+        _offScreenCanvas = null;
+        _offScreenBitmap = null;
+        _lastPoint = null;
+        _lastPointTime = -1;
+        invalidate();
+    }
+
+    /*
+    * saves the painting
+     */
+    public void savePainting() {
+
     }
 
     @Override
@@ -123,13 +136,38 @@ public class ImpressionistView extends View {
 
         if (_lastPoint != null) {
             if (_offScreenBitmap == null) _offScreenBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
-            if (_offScreenCanvas == null) _offScreenCanvas = new Canvas(_offScreenBitmap);
-            _offScreenCanvas.drawBitmap(_offScreenBitmap, 0, 0, _paint);
-            _offScreenCanvas.drawCircle(_lastPoint.x, _lastPoint.y, _currentRadius, _paint);
+            if (_offScreenCanvas == null) {
+                _offScreenCanvas = new Canvas(_offScreenBitmap);
+                _offScreenCanvas.drawColor(Color.WHITE);
+            }
+            _offScreenCanvas.drawBitmap(_offScreenBitmap, 0, 0, _canvasPaint);
+
+            switch (_brushType) {
+                case Circle:
+                    _offScreenCanvas.drawCircle(_lastPoint.x, _lastPoint.y, _currentRadius, _paint);
+                    break;
+                case CircleSplatter:
+                    for (int i = 0; i < _splatterCount; i++) {
+                        int xDisp = _lastPoint.x + (int)(Math.random() * _currentRadius * _splatterRadiusFactor / 2);
+                        int yDisp = _lastPoint.y + (int)(Math.random() * _currentRadius * _splatterRadiusFactor / 2);
+                        int radius = (int)(Math.random()*_currentRadius);
+                        _offScreenCanvas.drawCircle(xDisp, yDisp, radius, _paint);
+                    }
+                    break;
+                case Square:
+                    //the save-rotate-restore trick comes from
+                    //http://stackoverflow.com/questions/36606463/drawing-bunch-of-rotated-rectangles-on-android-canvas
+                    _offScreenCanvas.save();
+                    _offScreenCanvas.rotate((float) Math.random() * 360, _lastPoint.x, _lastPoint.y);
+                    _offScreenCanvas.drawRect(_lastPoint.x - _currentRadius / 2, _lastPoint.y + _currentRadius / 2,
+                            _lastPoint.x + _currentRadius / 2, _lastPoint.y - _currentRadius / 2, _paint);
+                    _offScreenCanvas.restore();
+                    break;
+            }
         }
 
         if(_offScreenBitmap != null) {
-            canvas.drawBitmap(_offScreenBitmap, 0, 0, _paint);
+            canvas.drawBitmap(_offScreenBitmap, 0, 0, _canvasPaint);
         }
 
         // Draw the border. Helpful to see the size of the bitmap in the ImageView
@@ -142,25 +180,28 @@ public class ImpressionistView extends View {
         float touchY = motionEvent.getY();
 
         if (motionEvent.getAction() == MotionEvent.ACTION_DOWN || motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
-            Rect viewRect = getBitmapPositionInsideImageView(_imageView);
-            Bitmap image = ((BitmapDrawable)_imageView.getDrawable()).getBitmap();
-            int xCoord = (int)Math.max(0, (touchX - viewRect.left) * image.getWidth() / viewRect.width());
-            xCoord = (int)Math.min(xCoord, image.getWidth() - 1);
-            int yCoord = (int)Math.max(0, (touchY - viewRect.top) * image.getHeight() / viewRect.height());
-            yCoord = (int)Math.min(yCoord, image.getHeight() - 1);
-            _paint.setColor(image.getPixel(xCoord, yCoord));
+            if (_imageView != null && _imageView.getDrawable() != null) {
+                Rect viewRect = getBitmapPositionInsideImageView(_imageView);
+                Bitmap image = ((BitmapDrawable) _imageView.getDrawable()).getBitmap();
+                int xCoord = (int) Math.max(0, (touchX - viewRect.left) * image.getWidth() / viewRect.width());
+                xCoord = (int) Math.min(xCoord, image.getWidth() - 1);
+                int yCoord = (int) Math.max(0, (touchY - viewRect.top) * image.getHeight() / viewRect.height());
+                yCoord = (int) Math.min(yCoord, image.getHeight() - 1);
+                _paint.setColor(image.getPixel(xCoord, yCoord));
+                _paint.setAlpha(_alpha);
 
-            if (_lastPointTime == -1) {
-                _currentRadius = _defaultRadius;
-            } else {
-                float dx = (float)Math.sqrt(Math.pow(_lastPoint.x - touchX, 2) + Math.pow(_lastPoint.y - touchY, 2));
-                float dt = System.currentTimeMillis() - _lastPointTime;
-                _currentRadius = (int)Math.max(Math.sqrt((dx/dt)/_defaultSpeed)*_defaultRadius, _minBrushRadius);
+                if (_lastPointTime == -1) {
+                    _currentRadius = _defaultRadius;
+                } else {
+                    float dx = (float) Math.sqrt(Math.pow(_lastPoint.x - touchX, 2) + Math.pow(_lastPoint.y - touchY, 2));
+                    float dt = System.currentTimeMillis() - _lastPointTime;
+                    _currentRadius = (int) Math.max(Math.sqrt((dx / dt) / _defaultSpeed) * _defaultRadius, _minBrushRadius);
+                }
+
+                _lastPointTime = System.currentTimeMillis();
+                _lastPoint = new Point((int) touchX, (int) touchY);
+                invalidate();
             }
-
-            _lastPointTime = System.currentTimeMillis();
-            _lastPoint = new Point((int)touchX, (int)touchY);
-            invalidate();
         }
 
 

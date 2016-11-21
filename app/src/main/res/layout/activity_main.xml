@@ -74,6 +74,12 @@
                 android:id="@+id/buttonClear"
                 android:onClick="onButtonClickClear"/>
 
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Save"
+                android:id="@+id/buttonSave"
+                android:onClick="onButtonClickSave"/>
 
         </LinearLayout>
 
